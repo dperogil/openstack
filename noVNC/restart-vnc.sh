@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #
-# Danilo Ferri Perogil [20120831]: 
+# Danilo Ferri Perogil [20120831]: Script para gerenciamento do WSPROXY do Openstack (VNC Interface)
 #
 #
 
