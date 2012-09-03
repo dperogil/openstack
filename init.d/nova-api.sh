@@ -36,7 +36,6 @@ RESTART() {
 	printf "\nRestart Nova-API...\n"
 	STOP
 	START
-	printf "Done.\n\n"
 }
 
 USAGE() {
