@@ -88,6 +88,46 @@ SETUP() {
 				VMLINUZ=`find . -iname *vmlinuz*`
 				VMLINUZ=`echo $TMP_IMAGES/$NAME_FOLDER/boot/$VMLINUZ | sed 's/\.\///g'`
 				IMAGE_NAME=`echo "$NAME_FOLDER" | sed 's/lucid/ubuntu-10.04/g' | sed 's/precise/ubuntu-12.04.1/g' `
+		SOURCE_IMAGE_NAME=$(echo "$IMAGE" | sed -r 's,(.*/)(.*),\2,' | xargs)
+		IMAGE_NAME_FOLDER=$(echo "$IMAGE" | sed -r 's,(.*/)(.*),\2,' | sed 's/\.tar.gz//g' | xargs)
+
+		# Caso não exista as pastas tmp as mesmas sao criadas
+		[ ! -e "$TMP_IMAGES" ] && mkdir -p "$TMP_IMAGES"
+		[ ! -e "$TMP_IMAGES/$IMAGE_NAME_FOLDER" ] && mkdir -p "$TMP_IMAGES/$IMAGE_NAME_FOLDER"
+
+		# Cria o nome da pasta conforme o nome do arquivo da image e descompacta
+		if [ ! -e "$TMP_IMAGES/$SOURCE_IMAGE_NAME" ]; then
+			printf "\nIniciando Download da Image: $IMAGE_NAME_FOLDER ...\n"
+			wget "$IMAGE" -O "$TMP_IMAGES/$SOURCE_IMAGE_NAME" > /dev/null 2>&1
+			printf "\nDescompactando Image: $IMAGE_NAME_FOLDER ...\n"
+			tar -xvzf "$TMP_IMAGES/$SOURCE_IMAGE_NAME" -C "$TMP_IMAGES/$IMAGE_NAME_FOLDER"
+		fi
+
+		# Definindo as variaveis das images e do vmlinuz buscando os arquivos nos diretórios
+		cd $TMP_IMAGES/$IMAGE_NAME_FOLDER
+		IMG=`find . -iname *.img`
+		IMG=`echo $TMP_IMAGES/$IMAGE_NAME_FOLDER/$IMG | sed 's/\.\///g'`
+		VMLINUZ=`find . -iname *vmlinuz*`
+		VMLINUZ=`echo $TMP_IMAGES/$IMAGE_NAME_FOLDER/$VMLINUZ | sed 's/\.\///g'`
+
+		# Caso a instalacao seja Centos ou Debian o Glance altera os parametros de kernel e disco
+		echo "$SOURCE_IMAGE_NAME" | egrep -i '(cent|debian)' > /dev/null
+		if [ "$?" -eq 0 ]; then
+			GLANCE "$IMAGE_NAME_FOLDER" qcow2 "$IMG"
+		fi
+
+		# Caso a instalacao seja derivadas de Debian altera os parametros de kernel e disco
+		echo "$SOURCE_IMAGE_NAME" | egrep -i '(tty|ubuntu|lucid|precise)' > /dev/null
+		if [ "$?" -eq 0 ]; then
+			# Especificando a instalacao do Ubuntu 12.04.1 (Precise) que o padrao é diferente de image e vmlinuz
+			echo "$SOURCE_IMAGE_NAME" | egrep -i '(precise)' > /dev/null
+			if [ "$?" -eq 0 ]; then
+				cd $TMP_IMAGES/$IMAGE_NAME_FOLDER/boot
+				IMG=`find . -iname *img*virtual*`
+				IMG=`echo $TMP_IMAGES/$IMAGE_NAME_FOLDER/boot/$IMG | sed 's/\.\///g'`
+				VMLINUZ=`find . -iname *vmlinuz*`
+				VMLINUZ=`echo $TMP_IMAGES/$IMAGE_NAME_FOLDER/boot/$VMLINUZ | sed 's/\.\///g'`
+				IMAGE_NAME=`echo "$IMAGE_NAME_FOLDER" | sed 's/lucid/ubuntu-10.04/g' | sed 's/precise/ubuntu-12.04.1/g' `
 				RVAL=`glance add -A $SERVICE_TOKEN name="$IMAGE_NAME-kernel" is_public=true 													container_format=aki disk_format=aki < "$VMLINUZ"`
 				KERNEL_ID=`echo $RVAL | cut -d":" -f2 | tr -d " "`
 				GLANCE "$IMAGE_NAME" ami "$IMG" "$KERNEL_ID"
